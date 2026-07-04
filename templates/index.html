@@ -1,0 +1,1184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EstimateAI — House Price Predictor</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+    :root{
+      --ink:     #0A0F1E;
+      --ink2:    #151D35;
+      --ink3:    #1F2D4A;
+      --line:    #263352;
+      --gold:    #E8A422;
+      --gold2:   #F5C842;
+      --sky:     #3B82F6;
+      --green:   #10B981;
+      --red:     #EF4444;
+      --white:   #F0F4FF;
+      --muted:   #7B8DB0;
+      --card:    #131B30;
+      --r:       16px;
+      --sh:      0 24px 64px rgba(0,0,0,.55);
+    }
+
+    html{scroll-behavior:smooth;scroll-snap-type:y mandatory}
+    body{font-family:'Inter',sans-serif;background:var(--ink);color:var(--white);overflow-x:hidden}
+
+    /* ═══════════════════════════════
+       PAGE SECTIONS (full-screen snapping)
+    ═══════════════════════════════ */
+    .page{
+      min-height:100vh;
+      scroll-snap-align:start;
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* ═══════════════════════════════
+       HERO PAGE
+    ═══════════════════════════════ */
+    #page-hero{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      padding:60px 24px 80px;
+    }
+
+    /* animated background dots */
+    #page-hero::before{
+      content:'';
+      position:absolute;inset:0;
+      background-image:radial-gradient(circle,rgba(232,164,34,.07) 1px,transparent 1px);
+      background-size:36px 36px;
+      pointer-events:none;
+    }
+    /* top-right glow */
+    #page-hero::after{
+      content:'';
+      position:absolute;top:-200px;right:-200px;
+      width:600px;height:600px;
+      background:radial-gradient(circle,rgba(59,130,246,.12) 0%,transparent 65%);
+      pointer-events:none;
+    }
+
+    .live-badge{
+      display:inline-flex;align-items:center;gap:8px;
+      background:rgba(232,164,34,.1);
+      border:1px solid rgba(232,164,34,.25);
+      color:var(--gold2);
+      font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      padding:6px 18px;border-radius:100px;
+      margin-bottom:32px;position:relative;
+    }
+    .live-dot{
+      width:7px;height:7px;border-radius:50%;
+      background:var(--gold);
+      animation:blink 2s infinite;
+    }
+    @keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+
+    .hero-title{
+      font-family:'DM Serif Display',serif;
+      font-size:clamp(2.6rem,6.5vw,5.2rem);
+      line-height:1.08;
+      color:var(--white);
+      max-width:820px;
+      position:relative;
+    }
+    .hero-title em{
+      font-style:italic;
+      color:var(--gold);
+    }
+
+    .hero-sub{
+      margin-top:22px;
+      font-size:clamp(1rem,2vw,1.18rem);
+      color:var(--muted);
+      max-width:540px;
+      line-height:1.75;
+      position:relative;
+      font-weight:300;
+    }
+
+    /* trust pills */
+    .trust-row{
+      display:flex;flex-wrap:wrap;gap:12px;
+      justify-content:center;
+      margin-top:36px;position:relative;
+    }
+    .trust-pill{
+      display:flex;align-items:center;gap:8px;
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:100px;
+      padding:8px 18px;
+      font-size:.82rem;color:var(--muted);
+    }
+    .trust-pill .icon{font-size:1rem;}
+
+    /* CTA button */
+    .hero-cta{
+      margin-top:48px;position:relative;
+      display:inline-flex;align-items:center;gap:10px;
+      background:var(--gold);
+      color:var(--ink);
+      font-family:'Inter',sans-serif;
+      font-size:1rem;font-weight:700;
+      padding:16px 36px;border-radius:12px;
+      border:none;cursor:pointer;
+      box-shadow:0 8px 32px rgba(232,164,34,.4);
+      transition:all .2s;text-decoration:none;
+    }
+    .hero-cta:hover{background:var(--gold2);transform:translateY(-2px);box-shadow:0 12px 40px rgba(232,164,34,.5)}
+    .hero-cta:active{transform:translateY(0)}
+
+    .hero-cta-arrow{
+      display:inline-block;
+      animation:bounce 2s infinite;
+    }
+    @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+
+    /* stat strip */
+    .stat-strip{
+      display:flex;gap:0;
+      margin-top:60px;position:relative;
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      overflow:hidden;
+      max-width:560px;
+      width:100%;
+    }
+    .stat-cell{
+      flex:1;padding:20px 16px;text-align:center;
+      border-right:1px solid var(--line);
+    }
+    .stat-cell:last-child{border-right:none;}
+    .stat-n{
+      font-family:'DM Serif Display',serif;
+      font-size:1.9rem;color:var(--gold);
+    }
+    .stat-l{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+
+    /* ═══════════════════════════════
+       HOW IT WORKS PAGE
+    ═══════════════════════════════ */
+    #page-how{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:80px 24px;
+    }
+
+    .section-eyebrow{
+      font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+      color:var(--gold);margin-bottom:14px;text-align:center;
+    }
+    .section-heading{
+      font-family:'DM Serif Display',serif;
+      font-size:clamp(1.8rem,4vw,2.8rem);
+      text-align:center;margin-bottom:12px;
+    }
+    .section-sub{
+      color:var(--muted);font-size:.95rem;text-align:center;
+      max-width:480px;line-height:1.7;margin-bottom:56px;
+    }
+
+    .steps-grid{
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+      gap:20px;
+      max-width:900px;width:100%;
+    }
+
+    .step-card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      padding:28px 24px;
+      position:relative;
+      transition:border-color .2s,transform .2s;
+    }
+    .step-card:hover{border-color:var(--gold);transform:translateY(-3px)}
+
+    .step-num{
+      font-family:'DM Serif Display',serif;
+      font-size:2.8rem;color:rgba(232,164,34,.15);
+      position:absolute;top:16px;right:20px;
+      line-height:1;
+    }
+    .step-icon{
+      width:44px;height:44px;border-radius:12px;
+      background:rgba(232,164,34,.1);
+      border:1px solid rgba(232,164,34,.2);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.3rem;margin-bottom:16px;
+    }
+    .step-title{font-weight:600;font-size:.95rem;margin-bottom:8px}
+    .step-desc{font-size:.82rem;color:var(--muted);line-height:1.65}
+
+    .how-next-btn{
+      margin-top:48px;
+      display:inline-flex;align-items:center;gap:8px;
+      background:transparent;
+      border:1px solid var(--gold);
+      color:var(--gold);
+      font-family:'Inter',sans-serif;font-size:.9rem;font-weight:600;
+      padding:13px 28px;border-radius:10px;cursor:pointer;
+      transition:all .2s;
+    }
+    .how-next-btn:hover{background:var(--gold);color:var(--ink)}
+
+    /* ═══════════════════════════════
+       PREDICTOR PAGE
+    ═══════════════════════════════ */
+    #page-predictor{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      padding:60px 24px 80px;
+    }
+
+    /* progress bar */
+    .progress-wrap{
+      width:100%;max-width:700px;
+      margin-bottom:36px;
+    }
+    .progress-header{
+      display:flex;justify-content:space-between;align-items:center;
+      margin-bottom:10px;
+    }
+    .progress-label{font-size:.8rem;color:var(--muted);font-weight:500}
+    .progress-count{font-size:.8rem;color:var(--gold);font-weight:600}
+    .progress-bar{
+      height:4px;background:var(--line);border-radius:2px;
+      overflow:hidden;
+    }
+    .progress-fill{
+      height:100%;background:var(--gold);border-radius:2px;
+      transition:width .5s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* step tabs */
+    .form-tabs{
+      display:flex;gap:8px;
+      width:100%;max-width:700px;
+      margin-bottom:28px;
+    }
+    .form-tab{
+      flex:1;padding:10px 8px;
+      border-radius:9px;
+      border:1px solid var(--line);
+      background:transparent;
+      color:var(--muted);
+      font-family:'Inter',sans-serif;font-size:.78rem;font-weight:600;
+      cursor:pointer;transition:all .2s;
+      display:flex;align-items:center;justify-content:center;gap:6px;
+    }
+    .form-tab.active{background:rgba(232,164,34,.1);border-color:var(--gold);color:var(--gold)}
+    .form-tab.done{border-color:var(--green);color:var(--green);background:rgba(16,185,129,.06)}
+    .form-tab .tab-check{display:none}
+    .form-tab.done .tab-check{display:inline}
+    .form-tab.done .tab-num{display:none}
+
+    /* form card */
+    .form-card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      padding:36px 40px;
+      box-shadow:var(--sh);
+      width:100%;max-width:700px;
+      display:none;
+    }
+    .form-card.active{display:block;animation:slideIn .35s ease}
+    @keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+    .fc-title{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+    .fc-desc{color:var(--muted);font-size:.85rem;line-height:1.6;margin-bottom:28px}
+
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .form-grid.one{grid-template-columns:1fr}
+
+    /* field */
+    .field{display:flex;flex-direction:column;gap:6px}
+    .field label{
+      font-size:.78rem;font-weight:600;
+      color:#C8D5F0;letter-spacing:.03em;
+    }
+    .field .sublabel{
+      font-size:.7rem;color:var(--muted);margin-top:-3px;
+    }
+    .field input,.field select{
+      background:var(--ink2);
+      border:1px solid var(--line);
+      border-radius:9px;
+      color:var(--white);
+      font-family:'Inter',sans-serif;font-size:.9rem;
+      padding:12px 14px;width:100%;
+      transition:border-color .2s,box-shadow .2s;
+      appearance:none;
+    }
+    .field input:focus,.field select:focus{
+      outline:none;
+      border-color:var(--gold);
+      box-shadow:0 0 0 3px rgba(232,164,34,.12);
+    }
+    .field input::placeholder{color:var(--line)}
+    .field select option{background:var(--ink2)}
+
+    /* quality slider */
+    .qual-row{display:flex;align-items:center;gap:16px;margin-bottom:4px}
+    .qual-badge{
+      min-width:52px;height:52px;border-radius:12px;
+      background:rgba(232,164,34,.1);border:1px solid rgba(232,164,34,.2);
+      display:flex;flex-direction:column;align-items:center;justify-content:center;
+    }
+    .qual-big{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--gold);line-height:1}
+    .qual-of{font-size:.62rem;color:var(--muted)}
+    .qual-slider-wrap{flex:1}
+    input[type=range]{
+      -webkit-appearance:none;width:100%;height:5px;
+      background:var(--line);border-radius:3px;
+      border:none!important;padding:0!important;box-shadow:none!important;outline:none;
+    }
+    input[type=range]::-webkit-slider-thumb{
+      -webkit-appearance:none;width:22px;height:22px;
+      border-radius:50%;background:var(--gold);cursor:pointer;
+      border:2px solid var(--ink);
+      box-shadow:0 0 0 4px rgba(232,164,34,.2);
+    }
+    .qual-desc{font-size:.75rem;color:var(--muted);margin-top:8px}
+    .qual-ticks{display:flex;justify-content:space-between;font-size:.68rem;color:var(--line);margin-top:4px}
+
+    /* option cards (for house type) */
+    .option-cards{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
+    }
+    .opt-card{
+      border:1.5px solid var(--line);
+      border-radius:10px;padding:12px 10px;
+      cursor:pointer;text-align:center;
+      transition:all .2s;
+      background:transparent;
+    }
+    .opt-card:hover{border-color:var(--muted)}
+    .opt-card.selected{border-color:var(--gold);background:rgba(232,164,34,.08)}
+    .opt-icon{font-size:1.5rem;margin-bottom:6px}
+    .opt-name{font-size:.75rem;font-weight:600;color:var(--white)}
+    .opt-sub{font-size:.67rem;color:var(--muted);margin-top:2px}
+
+    /* nav buttons */
+    .form-nav{display:flex;gap:12px;margin-top:32px}
+    .btn{
+      flex:1;padding:13px 20px;border-radius:10px;
+      font-family:'Inter',sans-serif;font-size:.9rem;font-weight:700;
+      cursor:pointer;border:none;
+      display:flex;align-items:center;justify-content:center;gap:8px;
+      transition:all .2s;
+    }
+    .btn-back{background:transparent;border:1px solid var(--line);color:var(--muted)}
+    .btn-back:hover{border-color:var(--white);color:var(--white)}
+    .btn-next{background:var(--gold);color:var(--ink);box-shadow:0 4px 20px rgba(232,164,34,.3)}
+    .btn-next:hover{background:var(--gold2);transform:translateY(-1px);box-shadow:0 8px 28px rgba(232,164,34,.45)}
+    .btn-next:active{transform:none}
+    .btn-next:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+    .spinner{
+      width:16px;height:16px;
+      border:2px solid rgba(10,15,30,.3);
+      border-top-color:var(--ink);
+      border-radius:50%;animation:spin .6s linear infinite;
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .err-msg{
+      display:none;margin-top:14px;
+      background:rgba(239,68,68,.07);
+      border:1px solid rgba(239,68,68,.2);
+      border-radius:9px;padding:12px 16px;
+      color:#FCA5A5;font-size:.83rem;
+    }
+    .err-msg.show{display:block}
+
+    /* ═══════════════════════════════
+       RESULT PAGE
+    ═══════════════════════════════ */
+    #page-result{
+      display:none;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      padding:60px 24px 80px;
+    }
+    #page-result.show{display:flex}
+
+    .result-wrap{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--r);
+      padding:44px 40px;
+      max-width:640px;width:100%;
+      box-shadow:var(--sh);
+      text-align:center;
+      animation:slideIn .4s ease;
+    }
+
+    .result-check{
+      width:60px;height:60px;border-radius:50%;
+      background:rgba(16,185,129,.12);
+      border:1px solid rgba(16,185,129,.3);
+      display:flex;align-items:center;justify-content:center;
+      font-size:1.6rem;margin:0 auto 20px;
+    }
+
+    .result-eyebrow{
+      font-size:.72rem;font-weight:700;letter-spacing:.12em;
+      text-transform:uppercase;color:var(--muted);margin-bottom:10px;
+    }
+
+    .result-usd{
+      font-family:'DM Serif Display',serif;
+      font-size:clamp(2.6rem,7vw,4.2rem);
+      color:var(--gold);line-height:1;margin-bottom:6px;
+    }
+
+    /* INR toggle */
+    .currency-toggle{
+      display:inline-flex;
+      border:1px solid var(--line);
+      border-radius:100px;
+      overflow:hidden;
+      margin:14px auto 0;
+    }
+    .cur-btn{
+      padding:7px 18px;
+      font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;
+      cursor:pointer;border:none;background:transparent;
+      color:var(--muted);transition:all .2s;
+    }
+    .cur-btn.active{background:var(--gold);color:var(--ink)}
+
+    .result-inr{
+      display:none;
+      font-family:'DM Serif Display',serif;
+      font-size:1.4rem;color:var(--muted);
+      margin-top:6px;
+    }
+    .result-inr.show{display:block}
+
+    .result-range-text{
+      font-size:.85rem;color:var(--muted);margin-top:12px;
+      line-height:1.6;
+    }
+
+    .result-grid{
+      display:grid;grid-template-columns:repeat(3,1fr);
+      gap:12px;margin-top:28px;
+    }
+    .rg-cell{
+      background:var(--ink2);border:1px solid var(--line);
+      border-radius:10px;padding:14px 10px;
+    }
+    .rg-val{font-weight:700;font-size:.95rem}
+    .rg-key{font-size:.68rem;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.06em}
+
+    .range-bar{
+      margin-top:24px;
+      background:var(--ink2);border:1px solid var(--line);
+      border-radius:12px;padding:18px 20px;
+      text-align:left;
+    }
+    .range-bar-label{font-size:.75rem;color:var(--muted);margin-bottom:10px;font-weight:500}
+    .range-track{
+      height:8px;background:var(--line);border-radius:4px;
+      position:relative;overflow:visible;
+    }
+    .range-fill{
+      height:100%;
+      background:linear-gradient(90deg,var(--sky),var(--gold));
+      border-radius:4px;width:100%;
+    }
+    .range-ends{
+      display:flex;justify-content:space-between;
+      margin-top:8px;font-size:.75rem;
+    }
+    .range-low{color:var(--sky)}
+    .range-high{color:var(--gold)}
+
+    .result-actions{display:flex;gap:12px;margin-top:28px}
+
+    /* ═══════════════════════════════
+       FOOTER
+    ═══════════════════════════════ */
+    footer{
+      scroll-snap-align:start;
+      text-align:center;padding:32px 24px;
+      border-top:1px solid var(--line);
+      color:var(--muted);font-size:.78rem;line-height:1.8;
+    }
+    footer strong{color:var(--white)}
+
+    /* ═══════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════ */
+    @media(max-width:600px){
+      .form-card{padding:24px 18px}
+      .form-grid{grid-template-columns:1fr}
+      .option-cards{grid-template-columns:1fr 1fr}
+      .result-grid{grid-template-columns:1fr 1fr}
+      .result-wrap{padding:28px 20px}
+      .stat-strip{flex-wrap:wrap}
+      .stat-cell{min-width:120px}
+      .form-tabs{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     PAGE 1 — HERO
+══════════════════════════════════════ -->
+<section class="page" id="page-hero">
+
+  <div class="live-badge"><span class="live-dot"></span>AI-Powered · Free to Use</div>
+
+  <h1 class="hero-title">
+    Find out what your<br>house is <em>actually worth</em>
+  </h1>
+
+  <p class="hero-sub">
+    Answer a few simple questions — no technical knowledge needed. Our machine-learning model analyses 41 property factors and gives you an accurate estimate in under 2 seconds.
+  </p>
+
+  <div class="trust-row">
+    <div class="trust-pill"><span class="icon">🎓</span> Trained on 1,460 real sales</div>
+    <div class="trust-pill"><span class="icon">🔒</span> No sign-up required</div>
+    <div class="trust-pill"><span class="icon">⚡</span> Instant result</div>
+    <div class="trust-pill"><span class="icon">🇮🇳</span> INR conversion included</div>
+  </div>
+
+  <a class="hero-cta" href="#page-how">
+    Check My Home's Value
+    <span class="hero-cta-arrow">↓</span>
+  </a>
+
+  <div class="stat-strip">
+    <div class="stat-cell">
+      <div class="stat-n">96%</div>
+      <div class="stat-l">Accuracy (R²)</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-n">41</div>
+      <div class="stat-l">Features Used</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-n">&lt;2s</div>
+      <div class="stat-l">Result Time</div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     PAGE 2 — HOW IT WORKS
+══════════════════════════════════════ -->
+<section class="page" id="page-how">
+
+  <p class="section-eyebrow">How it works</p>
+  <h2 class="section-heading">Simple. Fast. Accurate.</h2>
+  <p class="section-sub">Our AI does in 2 seconds what a property agent takes days to estimate.</p>
+
+  <div class="steps-grid">
+    <div class="step-card">
+      <div class="step-num">01</div>
+      <div class="step-icon">📝</div>
+      <div class="step-title">Tell us about your home</div>
+      <div class="step-desc">Fill in basic details like size, age, and number of rooms — all in plain, everyday language. No jargon.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">02</div>
+      <div class="step-icon">🧠</div>
+      <div class="step-title">AI analyses 41 factors</div>
+      <div class="step-desc">Our model — trained on 1,460 real home sales — weighs every detail: location type, quality, condition, and more.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">03</div>
+      <div class="step-icon">💰</div>
+      <div class="step-title">Get your price estimate</div>
+      <div class="step-desc">Instantly see your home's estimated market value in USD or INR, with a confidence range so you know how precise it is.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">04</div>
+      <div class="step-icon">📊</div>
+      <div class="step-title">Understand what drives value</div>
+      <div class="step-desc">See a breakdown of the key factors — like overall quality and living area — that pushed the price up or down.</div>
+    </div>
+  </div>
+
+  <button class="how-next-btn" onclick="scrollToPredictor()">
+    Start My Estimate →
+  </button>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     PAGE 3 — PREDICTOR (WIZARD)
+══════════════════════════════════════ -->
+<section class="page" id="page-predictor">
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-label" id="prog-label">Step 1 of 3 — Your Home</span>
+      <span class="progress-count" id="prog-count">33%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:33%"></div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="form-tabs">
+    <div class="form-tab active" id="tab-1"><span class="tab-num">1</span><span class="tab-check">✓</span> Your Home</div>
+    <div class="form-tab" id="tab-2"><span class="tab-num">2</span><span class="tab-check">✓</span> Features</div>
+    <div class="form-tab" id="tab-3"><span class="tab-num">3</span><span class="tab-check">✓</span> Extras</div>
+  </div>
+
+  <!-- ── STEP 1: Core Info ── -->
+  <div class="form-card active" id="fc-1">
+    <h3 class="fc-title">Tell us about your home 🏡</h3>
+    <p class="fc-desc">Start with the basics — how big it is, how old it is, and how well-maintained it is overall.</p>
+
+    <!-- House type visual selector -->
+    <div class="field" style="margin-bottom:20px">
+      <label>What type of home is it?</label>
+      <div class="sublabel">Select the one that best matches your property</div>
+      <div class="option-cards" style="margin-top:10px" id="bldg-cards">
+        <div class="opt-card selected" data-val="1Fam" onclick="selectOpt(this,'bldg-cards','BldgType')">
+          <div class="opt-icon">🏠</div>
+          <div class="opt-name">Standalone</div>
+          <div class="opt-sub">Single family home</div>
+        </div>
+        <div class="opt-card" data-val="TwnhsE" onclick="selectOpt(this,'bldg-cards','BldgType')">
+          <div class="opt-icon">🏘️</div>
+          <div class="opt-name">Townhouse</div>
+          <div class="opt-sub">End / corner unit</div>
+        </div>
+        <div class="opt-card" data-val="Duplex" onclick="selectOpt(this,'bldg-cards','BldgType')">
+          <div class="opt-icon">🏢</div>
+          <div class="opt-name">Duplex / Flat</div>
+          <div class="opt-sub">Two-unit building</div>
+        </div>
+      </div>
+      <input type="hidden" id="BldgType" value="1Fam"/>
+    </div>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Year the home was built</label>
+        <div class="sublabel">e.g. 1995 or 2010</div>
+        <input type="number" id="YearBuilt" placeholder="e.g. 2003" min="1800" max="2025"/>
+      </div>
+      <div class="field">
+        <label>Year of last major renovation</label>
+        <div class="sublabel">If never renovated, enter the year built</div>
+        <input type="number" id="YearRemodAdd" placeholder="e.g. 2015" min="1800" max="2025"/>
+      </div>
+    </div>
+
+    <!-- Quality slider -->
+    <div class="field" style="margin-top:20px">
+      <label>Overall condition &amp; quality of the home</label>
+      <div class="sublabel">Think about the materials, finishes, and build quality — not just cleanliness</div>
+      <div class="qual-row" style="margin-top:12px">
+        <div class="qual-badge">
+          <div class="qual-big" id="qual-num">5</div>
+          <div class="qual-of">/ 10</div>
+        </div>
+        <div class="qual-slider-wrap">
+          <input type="range" id="OverallQual" min="1" max="10" value="5"
+                 oninput="onQual(this.value)"/>
+          <div class="qual-ticks"><span>Poor</span><span>Average</span><span>Excellent</span></div>
+        </div>
+      </div>
+      <div class="qual-desc" id="qual-desc">Average — standard materials, acceptable finishes</div>
+    </div>
+
+    <div class="err-msg" id="err-1">Please fill in the year built and year renovated before continuing.</div>
+
+    <div class="form-nav">
+      <button class="btn btn-next" style="max-width:200px;margin-left:auto" onclick="goStep(2)">
+        Next — Features →
+      </button>
+    </div>
+  </div>
+
+  <!-- ── STEP 2: Size & Rooms ── -->
+  <div class="form-card" id="fc-2">
+    <h3 class="fc-title">Size &amp; rooms 📐</h3>
+    <p class="fc-desc">Tell us how much space the home has. If you're not sure of exact numbers, a close estimate works fine.</p>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Total living area (sq ft)</label>
+        <div class="sublabel">All floors above ground — not the basement</div>
+        <input type="number" id="GrLivArea" placeholder="e.g. 1500"/>
+      </div>
+      <div class="field">
+        <label>Basement area (sq ft)</label>
+        <div class="sublabel">Enter 0 if there's no basement</div>
+        <input type="number" id="TotalBsmtSF" placeholder="e.g. 800" value="0"/>
+      </div>
+      <div class="field">
+        <label>Number of full bathrooms</label>
+        <div class="sublabel">Full bathroom = toilet + sink + shower/bath</div>
+        <select id="FullBath">
+          <option value="1">1 bathroom</option>
+          <option value="2" selected>2 bathrooms</option>
+          <option value="3">3 bathrooms</option>
+          <option value="4">4 or more</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Total rooms (above ground)</label>
+        <div class="sublabel">Count bedrooms + living room + dining — not bathrooms</div>
+        <select id="TotRmsAbvGrd">
+          <option value="4">4 rooms</option>
+          <option value="5">5 rooms</option>
+          <option value="6">6 rooms</option>
+          <option value="7">7 rooms</option>
+          <option value="8" selected>8 rooms</option>
+          <option value="9">9 rooms</option>
+          <option value="10">10+ rooms</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="err-msg" id="err-2">Please enter the living area before continuing.</div>
+
+    <div class="form-nav">
+      <button class="btn btn-back" onclick="goStep(1)">← Back</button>
+      <button class="btn btn-next" onclick="goStep(3)">Next — Extras →</button>
+    </div>
+  </div>
+
+  <!-- ── STEP 3: Extras ── -->
+  <div class="form-card" id="fc-3">
+    <h3 class="fc-title">A few more details ✨</h3>
+    <p class="fc-desc">These last details significantly affect the price — choose the option that best matches your home.</p>
+
+    <div class="form-grid">
+      <div class="field">
+        <label>Kitchen quality</label>
+        <div class="sublabel">How would you rate the kitchen?</div>
+        <select id="KitchenQual">
+          <option value="Ex">Excellent — luxury finishes, high-end appliances</option>
+          <option value="Gd" selected>Good — modern, well-maintained</option>
+          <option value="TA">Average — functional, nothing special</option>
+          <option value="Fa">Fair — older or needs updating</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Garage / parking</label>
+        <div class="sublabel">How many cars can the garage fit?</div>
+        <select id="GarageCars">
+          <option value="0">No garage / parking</option>
+          <option value="1">Fits 1 car</option>
+          <option value="2" selected>Fits 2 cars</option>
+          <option value="3">Fits 3 or more cars</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Area type / zoning</label>
+        <div class="sublabel">What kind of area is the property in?</div>
+        <select id="MSZoning">
+          <option value="RL">Residential — low density (suburbs, quiet area)</option>
+          <option value="RM">Residential — medium density (mixed housing)</option>
+          <option value="FV">Planned community / gated township</option>
+          <option value="RH">Residential — high density (urban/city)</option>
+          <option value="C_all">Commercial zone</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Heating system</label>
+        <div class="sublabel">What type of heating does the home have?</div>
+        <select id="Heating">
+          <option value="GasA" selected>Central gas heating (most common)</option>
+          <option value="GasW">Gas hot-water heating</option>
+          <option value="Grav">Gravity / old-style furnace</option>
+          <option value="Wall">Wall-mounted heater</option>
+          <option value="OthW">Electric / other hot water</option>
+          <option value="Floor">Floor heating</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Sale condition -->
+    <div class="field" style="margin-top:18px">
+      <label>How is the home being sold?</label>
+      <div class="sublabel">Choose the option that matches the sale situation</div>
+      <div class="option-cards" style="margin-top:10px;grid-template-columns:repeat(3,1fr)" id="sale-cards">
+        <div class="opt-card selected" data-val="Normal" onclick="selectOpt(this,'sale-cards','SaleCondition')">
+          <div class="opt-icon">🤝</div>
+          <div class="opt-name">Normal Sale</div>
+          <div class="opt-sub">Standard listing</div>
+        </div>
+        <div class="opt-card" data-val="Partial" onclick="selectOpt(this,'sale-cards','SaleCondition')">
+          <div class="opt-icon">🏗️</div>
+          <div class="opt-name">New / Under Construction</div>
+          <div class="opt-sub">Not fully complete</div>
+        </div>
+        <div class="opt-card" data-val="Abnorml" onclick="selectOpt(this,'sale-cards','SaleCondition')">
+          <div class="opt-icon">⚡</div>
+          <div class="opt-name">Foreclosure / Urgent</div>
+          <div class="opt-sub">Quick or forced sale</div>
+        </div>
+      </div>
+      <input type="hidden" id="SaleCondition" value="Normal"/>
+    </div>
+
+    <div class="err-msg" id="err-3">Something went wrong. Please check your inputs.</div>
+
+    <div class="form-nav">
+      <button class="btn btn-back" onclick="goStep(2)">← Back</button>
+      <button class="btn btn-next" id="predict-btn" onclick="predictPrice()">
+        Calculate My Home's Value 🏡
+      </button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════════════════════
+     PAGE 4 — RESULT
+══════════════════════════════════════ -->
+<section class="page" id="page-result">
+  <div class="result-wrap">
+
+    <div class="result-check">✅</div>
+    <p class="result-eyebrow">Estimated Market Value</p>
+
+    <!-- USD price -->
+    <div class="result-usd" id="res-usd">$0</div>
+
+    <!-- Currency toggle -->
+    <div class="currency-toggle">
+      <button class="cur-btn active" onclick="showCur('usd',this)">🇺🇸 USD</button>
+      <button class="cur-btn" onclick="showCur('inr',this)">🇮🇳 INR</button>
+    </div>
+
+    <!-- INR price (hidden by default) -->
+    <div class="result-inr" id="res-inr">₹0</div>
+
+    <p class="result-range-text" id="res-range">Confidence range: calculating…</p>
+
+    <!-- Key stats -->
+    <div class="result-grid" id="res-grid"></div>
+
+    <!-- Range bar -->
+    <div class="range-bar">
+      <div class="range-bar-label">Price Confidence Range</div>
+      <div class="range-track"><div class="range-fill"></div></div>
+      <div class="range-ends">
+        <span class="range-low" id="range-low">Low</span>
+        <span style="color:var(--muted);font-size:.72rem">Estimated range</span>
+        <span class="range-high" id="range-high">High</span>
+      </div>
+    </div>
+
+    <div class="result-actions">
+      <button class="btn btn-back" style="flex:1" onclick="resetAll()">← New Estimate</button>
+      <button class="btn btn-next" style="flex:1" onclick="window.print()">Save as PDF 📄</button>
+    </div>
+
+    <p style="font-size:.72rem;color:var(--muted);margin-top:16px;line-height:1.6">
+      INR conversion uses approx. rate: 1 USD = ₹83.5 &nbsp;·&nbsp;
+      Predictions are estimates based on historical data and may vary from actual market prices.
+    </p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <strong>EstimateAI</strong> — House Price Intelligence<br>
+  Built with Python · Scikit-learn · Flask · Vanilla JS &nbsp;|&nbsp;
+  A project by <strong>Sebin Shaji</strong><br>
+  <span style="font-size:.7rem">Predictions are estimates. Not a substitute for professional property valuation.</span>
+</footer>
+
+<script>
+/* ═══════════════════════════════
+   QUALITY LABELS
+═══════════════════════════════ */
+const qualMap = {
+  1:'Very Poor — serious structural issues, major repairs needed',
+  2:'Poor — significant defects, well below standard',
+  3:'Below Average — noticeable wear, some repairs needed',
+  4:'Fair — older materials, minor issues throughout',
+  5:'Average — standard materials, acceptable finishes',
+  6:'Above Average — good quality materials, well-kept',
+  7:'Good — very good materials, minor cosmetic updates only',
+  8:'Very Good — excellent build quality, high-end finishes',
+  9:'Exceptional — near-luxury, top-tier materials',
+  10:'Outstanding — absolute best quality, premium everything'
+};
+
+function onQual(v) {
+  document.getElementById('qual-num').textContent = v;
+  document.getElementById('qual-desc').textContent = qualMap[+v];
+}
+
+/* ═══════════════════════════════
+   OPTION CARD SELECTOR
+═══════════════════════════════ */
+function selectOpt(el, groupId, inputId) {
+  document.querySelectorAll('#' + groupId + ' .opt-card')
+    .forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById(inputId).value = el.dataset.val;
+}
+
+/* ═══════════════════════════════
+   STEP NAVIGATION
+═══════════════════════════════ */
+const progLabels = ['Step 1 of 3 — Your Home','Step 2 of 3 — Size & Rooms','Step 3 of 3 — Extras'];
+const progPct    = ['33%','66%','100%'];
+
+function goStep(n) {
+  // validate
+  if (n === 2) {
+    const yb = +document.getElementById('YearBuilt').value;
+    const yr = +document.getElementById('YearRemodAdd').value;
+    if (!yb || !yr) { document.getElementById('err-1').classList.add('show'); return; }
+    document.getElementById('err-1').classList.remove('show');
+  }
+  if (n === 3) {
+    const gla = +document.getElementById('GrLivArea').value;
+    if (!gla) { document.getElementById('err-2').classList.add('show'); return; }
+    document.getElementById('err-2').classList.remove('show');
+  }
+
+  // hide all cards
+  document.querySelectorAll('.form-card').forEach(c => c.classList.remove('active'));
+  document.getElementById('fc-' + n).classList.add('active');
+
+  // update tabs
+  ['tab-1','tab-2','tab-3'].forEach((id, i) => {
+    const t = document.getElementById(id);
+    t.classList.remove('active','done');
+    if (i + 1 < n) t.classList.add('done');
+    if (i + 1 === n) t.classList.add('active');
+  });
+
+  // progress
+  document.getElementById('prog-label').textContent = progLabels[n-1];
+  document.getElementById('prog-count').textContent = progPct[n-1];
+  document.getElementById('prog-fill').style.width = progPct[n-1];
+
+  // scroll predictor page into view
+  document.getElementById('page-predictor').scrollIntoView({behavior:'smooth'});
+}
+
+/* ═══════════════════════════════
+   SCROLL HELPERS
+═══════════════════════════════ */
+function scrollToPredictor() {
+  document.getElementById('page-predictor').scrollIntoView({behavior:'smooth'});
+}
+
+/* ═══════════════════════════════
+   BUILD FEATURE VECTOR (41 features)
+═══════════════════════════════ */
+function buildPayload(d) {
+  const z = d.MSZoning, b = d.BldgType, h = d.Heating, k = d.KitchenQual, s = d.SaleCondition;
+  const keys = [
+    'OverallQual','YearBuilt','YearRemodAdd','TotalBsmtSF','1stFlrSF',
+    'GrLivArea','FullBath','TotRmsAbvGrd','GarageCars','GarageArea',
+    'MSZoning_C (all)','MSZoning_FV','MSZoning_RH','MSZoning_RL','MSZoning_RM',
+    'Utilities_AllPub','Utilities_NoSeWa',
+    'BldgType_1Fam','BldgType_2fmCon','BldgType_Duplex','BldgType_Twnhs','BldgType_TwnhsE',
+    'Heating_Floor','Heating_GasA','Heating_GasW','Heating_Grav','Heating_OthW','Heating_Wall',
+    'KitchenQual_Ex','KitchenQual_Fa','KitchenQual_Gd','KitchenQual_TA',
+    'SaleCondition_Abnorml','SaleCondition_AdjLand','SaleCondition_Alloca',
+    'SaleCondition_Family','SaleCondition_Normal','SaleCondition_Partial',
+    'LandSlope_Gtl','LandSlope_Mod','LandSlope_Sev'
+  ];
+  const vals = [
+    d.OverallQual, d.YearBuilt, d.YearRemodAdd, d.TotalBsmtSF, 856,
+    d.GrLivArea, d.FullBath, d.TotRmsAbvGrd, d.GarageCars, d.GarageCars*274,
+    z==='C_all'?1:0, z==='FV'?1:0, z==='RH'?1:0, z==='RL'?1:0, z==='RM'?1:0,
+    1, 0,
+    b==='1Fam'?1:0, b==='2fmCon'?1:0, b==='Duplex'?1:0, b==='Twnhs'?1:0, b==='TwnhsE'?1:0,
+    h==='Floor'?1:0, h==='GasA'?1:0, h==='GasW'?1:0, h==='Grav'?1:0, h==='OthW'?1:0, h==='Wall'?1:0,
+    k==='Ex'?1:0, k==='Fa'?1:0, k==='Gd'?1:0, k==='TA'?1:0,
+    s==='Abnorml'?1:0, s==='AdjLand'?1:0, s==='Alloca'?1:0,
+    s==='Family'?1:0, s==='Normal'?1:0, s==='Partial'?1:0,
+    1, 0, 0
+  ];
+  const payload = {};
+  keys.forEach((k,i) => payload[k] = vals[i]);
+  return payload;
+}
+
+/* ═══════════════════════════════
+   PRICE COUNTER ANIMATION
+═══════════════════════════════ */
+let _lastUSD = 0;
+
+function animateCount(target, el, prefix, decimals) {
+  const dur = 1400, start = performance.now();
+  const fmt = v => prefix + Math.round(v).toLocaleString('en-IN');
+  function tick(now) {
+    const p = Math.min((now-start)/dur, 1);
+    const e = 1 - Math.pow(1-p, 4);
+    el.textContent = fmt(target * e);
+    if (p < 1) requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ═══════════════════════════════
+   CURRENCY TOGGLE
+═══════════════════════════════ */
+function showCur(cur, btn) {
+  document.querySelectorAll('.cur-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const inrEl = document.getElementById('res-inr');
+  const usdEl = document.getElementById('res-usd');
+  if (cur === 'inr') {
+    inrEl.classList.add('show');
+    usdEl.style.opacity = '.4';
+  } else {
+    inrEl.classList.remove('show');
+    usdEl.style.opacity = '1';
+  }
+}
+
+/* ═══════════════════════════════
+   PREDICT
+═══════════════════════════════ */
+async function predictPrice() {
+  const btn = document.getElementById('predict-btn');
+
+  const d = {
+    OverallQual:  +document.getElementById('OverallQual').value,
+    YearBuilt:    +document.getElementById('YearBuilt').value,
+    YearRemodAdd: +document.getElementById('YearRemodAdd').value,
+    TotalBsmtSF:  +document.getElementById('TotalBsmtSF').value,
+    GrLivArea:    +document.getElementById('GrLivArea').value,
+    FullBath:     +document.getElementById('FullBath').value,
+    TotRmsAbvGrd: +document.getElementById('TotRmsAbvGrd').value,
+    GarageCars:   +document.getElementById('GarageCars').value,
+    MSZoning:     document.getElementById('MSZoning').value,
+    BldgType:     document.getElementById('BldgType').value,
+    Heating:      document.getElementById('Heating').value,
+    KitchenQual:  document.getElementById('KitchenQual').value,
+    SaleCondition:document.getElementById('SaleCondition').value,
+  };
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> Analysing your property…';
+
+  try {
+    const res  = await fetch('/predict', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(buildPayload(d))
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+
+    const price = json['Predicted Price'];
+    _lastUSD = price;
+    const low  = Math.round(price * 0.90);
+    const high = Math.round(price * 1.10);
+    const inr  = Math.round(price * 83.5);
+    const inrL = Math.round(low * 83.5);
+    const inrH = Math.round(high * 83.5);
+
+    /* Switch to result page */
+    document.getElementById('page-predictor').style.display = 'none';
+    const rp = document.getElementById('page-result');
+    rp.classList.add('show');
+    rp.scrollIntoView({behavior:'smooth'});
+
+    /* Animate USD */
+    animateCount(price, document.getElementById('res-usd'), '$', 0);
+
+    /* INR (hidden until toggled) */
+    const inrEl = document.getElementById('res-inr');
+    inrEl.textContent = '₹' + inr.toLocaleString('en-IN');
+
+    /* Range text */
+    document.getElementById('res-range').innerHTML =
+      `Estimated between <strong style="color:var(--sky)">$${low.toLocaleString()}</strong> and <strong style="color:var(--gold)">$${high.toLocaleString()}</strong> &nbsp;(±10% confidence)`;
+
+    /* Range bar ends */
+    document.getElementById('range-low').textContent  = '$' + low.toLocaleString();
+    document.getElementById('range-high').textContent = '$' + high.toLocaleString();
+
+    /* Stat grid */
+    const bldgLabels = {'1Fam':'Standalone','TwnhsE':'Townhouse','Twnhs':'Townhouse','Duplex':'Duplex','2fmCon':'Converted'};
+    const kitLabels  = {'Ex':'Excellent','Gd':'Good','TA':'Average','Fa':'Fair'};
+    document.getElementById('res-grid').innerHTML = `
+      <div class="rg-cell"><div class="rg-val">${d.GrLivArea.toLocaleString()} ft²</div><div class="rg-key">Living Area</div></div>
+      <div class="rg-cell"><div class="rg-val">${d.YearBuilt}</div><div class="rg-key">Year Built</div></div>
+      <div class="rg-cell"><div class="rg-val">${d.OverallQual}/10</div><div class="rg-key">Quality</div></div>
+      <div class="rg-cell"><div class="rg-val">${d.FullBath} Bath${d.FullBath>1?'s':''}</div><div class="rg-key">Bathrooms</div></div>
+      <div class="rg-cell"><div class="rg-val">${bldgLabels[d.BldgType]||d.BldgType}</div><div class="rg-key">Home Type</div></div>
+      <div class="rg-cell"><div class="rg-val">${kitLabels[d.KitchenQual]}</div><div class="rg-key">Kitchen</div></div>
+    `;
+
+  } catch(err) {
+    document.getElementById('err-3').textContent = 'Prediction failed: ' + err.message + '. Make sure the Flask server is running.';
+    document.getElementById('err-3').classList.add('show');
+    btn.disabled = false;
+    btn.innerHTML = 'Calculate My Home\'s Value 🏡';
+  }
+}
+
+/* ═══════════════════════════════
+   RESET
+═══════════════════════════════ */
+function resetAll() {
+  // hide result, show predictor
+  document.getElementById('page-result').classList.remove('show');
+  document.getElementById('page-predictor').style.display = 'flex';
+  document.getElementById('page-predictor').scrollIntoView({behavior:'smooth'});
+
+  // reset form
+  document.getElementById('YearBuilt').value = '';
+  document.getElementById('YearRemodAdd').value = '';
+  document.getElementById('GrLivArea').value = '';
+  document.getElementById('TotalBsmtSF').value = '0';
+  document.getElementById('OverallQual').value = 5;
+  onQual(5);
+
+  // reset opt cards
+  document.querySelectorAll('#bldg-cards .opt-card').forEach((c,i) => c.classList.toggle('selected', i===0));
+  document.getElementById('BldgType').value = '1Fam';
+  document.querySelectorAll('#sale-cards .opt-card').forEach((c,i) => c.classList.toggle('selected', i===0));
+  document.getElementById('SaleCondition').value = 'Normal';
+
+  // reset errors & button
+  ['err-1','err-2','err-3'].forEach(id => document.getElementById(id).classList.remove('show'));
+  const btn = document.getElementById('predict-btn');
+  btn.disabled = false;
+  btn.innerHTML = "Calculate My Home's Value 🏡";
+
+  // reset currency
+  document.getElementById('res-inr').classList.remove('show');
+  document.getElementById('res-usd').style.opacity = '1';
+  document.querySelectorAll('.cur-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+
+  goStep(1);
+}
+</script>
+</body>
+</html>
