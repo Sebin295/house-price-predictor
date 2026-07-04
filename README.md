@@ -26,7 +26,7 @@ Python · Scikit-learn · Flask · REST API · HTML · CSS ·
 JavaScript · Docker · Swagger · Pandas · NumPy · Git
 
 ## ⚙️ Run Locally
-git clone https://github.com/YOUR_USERNAME/house-price-predictor
+git clone https://github.com/Sebin295/house-price-predictor
 cd house-price-predictor
 pip install -r requirements.txt
 python app.py
